@@ -10,11 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      
+      - name: Fetch base branch
+        run: git fetch origin $GITHUB_BASE_REF
 
       - name: Check for shared library version updates
         id: check_libs
