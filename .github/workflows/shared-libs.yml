@@ -63,7 +63,7 @@ jobs:
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.GMAIL_USERNAME }}
-          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          password: ${{ secrets.GMAIL_PASSWORD }}
           subject: 'Shared library version updated in pom.xml'
           body: |
             ⚠️ Shared library versions were updated in pom.xml of cl-clpss.
