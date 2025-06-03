@@ -3,13 +3,13 @@ import xml.etree.ElementTree as ET
 import subprocess
 
 SHARED_LIBRARIES = [
-    "CL-Util",
-    "Clpss-common",
-    "clpss-occupancy",
-    "clpss-fire-rating",
-    "clpss-csm",
-    "clpss-rating",
-    "clpss-compose-print"
+    "Util",
+    "common",
+    "occupancy",
+    "fire-rating",
+    "csm",
+    "rating",
+    "compose-print"
 ]
 
 def get_pom_lib_versions(pom_path):

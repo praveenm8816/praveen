@@ -12,37 +12,37 @@
     <dependencies>
         <dependency>
             <groupId>com.example</groupId>
-            <artifactId>CL-Util</artifactId>
+            <artifactId>Util</artifactId>
             <version>2.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
-            <artifactId>Clpss-common</artifactId>
+            <artifactId>common</artifactId>
             <version>3.0.5</version>
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
-            <artifactId>clpss-occupancy</artifactId>
+            <artifactId>occupancy</artifactId>
             <version>1.7.2</version>
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
-            <artifactId>clpss-fire-rating</artifactId>
+            <artifactId>fire-rating</artifactId>
             <version>4.2.0</version>
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
-            <artifactId>clpss-csm</artifactId>
+            <artifactId>csm</artifactId>
             <version>5.1.1</version>
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
-            <artifactId>clpss-rating</artifactId>
+            <artifactId>rating</artifactId>
             <version>6.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
-            <artifactId>clpss-compose-print</artifactId>
+            <artifactId>compose-print</artifactId>
             <version>1.0.3</version>
         </dependency>
     </dependencies>

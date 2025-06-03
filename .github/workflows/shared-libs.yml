@@ -40,7 +40,7 @@ jobs:
                 "⚠️ Shared library versions were updated in pom.xml.\n",
                 "",
                 "Please also update the corresponding versions in:",
-                "- pyla (Gradle)",
+                "- gradle (Gradle)",
                 "- schedular (Ivy)",
                 "- server (Ivy)",
                 "",
@@ -52,5 +52,5 @@ jobs:
         if: steps.check_libs.outputs.changed == 'true'
         run: |
           curl -H 'Content-Type: application/json' \
-            -d '{"text": "⚠️ Shared library versions were updated in pom.xml of cl-clpss. Please update pyla, jobserver, jobschedular accordingly."}' \
+            -d '{"text": "⚠️ Shared library versions were updated in pom.xml of cl-clpss. Please update gradle, jobserver, jobschedular accordingly."}' \
             ${{ secrets.TEAMS_WEBHOOK_URL }}
