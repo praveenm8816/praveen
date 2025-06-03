@@ -62,14 +62,14 @@ jobs:
         with:
           server_address: smtp.gmail.com
           server_port: 465
-          username: ${{ secrets.GMAIL_USERNAME }}
+          username: ${{ secrets.GMAIL_ID }}
           password: ${{ secrets.GMAIL_PASSWORD }}
           subject: 'Shared library version updated in pom.xml'
           body: |
             ⚠️ Shared library versions were updated in pom.xml of cl-clpss.
             Please update gradle, server, schedular accordingly.
           to: 'madaninarsimha6@gmail.com'
-          from: ${{ secrets.GMAIL_USERNAME }}
+          from: ${{ secrets.GMAIL_ID }}
           secure: true
 
       # - name: Notify Teams Channel
