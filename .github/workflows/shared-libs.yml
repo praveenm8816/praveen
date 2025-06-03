@@ -10,11 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      
+      - name: Fetch base branch
+        run: git fetch origin $GITHUB_BASE_REF
 
       - name: Check for shared library version updates
         id: check_libs
@@ -48,32 +53,9 @@ jobs:
               ].join('\n')
             })
 
-      # - name: Notify Teams Channel
-      #   if: steps.check_libs.outputs.changed == 'true'
-      #   run: |
-      #     curl -H 'Content-Type: application/json' \
-      #       -d '{"text": "⚠️ Shared library versions were updated in pom.xml of cl-clpss. Please update gradle, schedular, and server accordingly."}' \
-      #       ${{ secrets.TEAMS_WEBHOOK_URL }}
-
-      - name: Notify via Gmail
+      - name: Notify Teams Channel
         if: steps.check_libs.outputs.changed == 'true'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{ secrets.GMAIL_USERNAME }}
-          password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "⚠️ Shared library version updated in cl-clpss"
-          to: "madaninarsimha6@gmail.com"
-          from: "cl-clpss CI <madaninarsimha6@gmail.com>"
-          body: |
-            ⚠️ A shared library version was updated in cl-clpss's pom.xml.
-
-            Please ensure the same version is updated in the following repositories:
-            - gradle (build.gradle)
-            - schedular (ivy.xml)
-            - server (ivy.xml)
-
-            Keeping these aligned prevents runtime incompatibilities.
-
-            -- Automated Notification
+        run: |
+          curl -H 'Content-Type: application/json' \
+            -d '{"text": "⚠️ Shared library versions were updated in pom.xml of cl-clpss. Please update gradle, jobserver, jobschedular accordingly."}' \
+            ${{ secrets.TEAMS_WEBHOOK_URL }}
