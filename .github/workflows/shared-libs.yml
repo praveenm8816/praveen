@@ -67,7 +67,7 @@ jobs:
           subject: 'Shared library version updated in pom.xml'
           body: |
             ⚠️ Shared library versions were updated in pom.xml of cl-clpss.
-            Please update gradle, jobserver, jobschedular accordingly.
+            Please update gradle, server, schedular accordingly.
           to: 'madaninarsimha6@gmail.com'
           from: ${{ secrets.GMAIL_USERNAME }}
           secure: true
