@@ -5,6 +5,9 @@ on:
     paths:
       - 'pom.xml'
 
+permissions:
+  pull-requests: write
+  issues: write
 jobs:
   check-shared-lib-versions:
     runs-on: ubuntu-latest
