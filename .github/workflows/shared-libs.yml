@@ -5,6 +5,9 @@ on:
     paths:
       - 'pom.xml'
 
+permissions:
+  pull-requests: write
+  issues: write
 jobs:
   check-shared-lib-versions:
     runs-on: ubuntu-latest
@@ -52,10 +55,26 @@ jobs:
                 "Keeping these aligned prevents runtime incompatibilities."
               ].join('\n')
             })
-
-      - name: Notify Teams Channel
+      
+      - name: Send Gmail Notification
         if: steps.check_libs.outputs.changed == 'true'
-        run: |
-          curl -H 'Content-Type: application/json' \
-            -d '{"text": "⚠️ Shared library versions were updated in pom.xml of cl-clpss. Please update gradle, jobserver, jobschedular accordingly."}' \
-            ${{ secrets.TEAMS_WEBHOOK_URL }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.GMAIL_USERNAME }}
+          password: ${{ secrets.GMAIL_PASSWORD }}
+          subject: 'Shared library version updated in pom.xml'
+          body: |
+            ⚠️ Shared library versions were updated in pom.xml of cl-clpss.
+            Please update gradle, server, schedular accordingly.
+          to: 'madaninarsimha6@gmail.com'
+          from: ${{ secrets.GMAIL_USERNAME }}
+          secure: true
+
+      # - name: Notify Teams Channel
+      #   if: steps.check_libs.outputs.changed == 'true'
+      #   run: |
+      #     curl -H 'Content-Type: application/json' \
+      #       -d '{"text": "⚠️ Shared library versions were updated in pom.xml of cl-clpss. Please update gradle, jobserver, jobschedular accordingly."}' \
+      #       ${{ secrets.TEAMS_WEBHOOK_URL }}
