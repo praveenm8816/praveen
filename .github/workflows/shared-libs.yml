@@ -1,0 +1,56 @@
+name: Shared Library Version Alignment
+
+on:
+  pull_request:
+    paths:
+      - 'pom.xml'
+
+jobs:
+  check-shared-lib-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check for shared library version updates
+        id: check_libs
+        run: |
+          python .github/scripts/check_shared_lib_versions.py > result.log
+          cat result.log
+          if grep -q 'LIB_VERSION_CHANGED' result.log; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify via PR comment
+        if: steps.check_libs.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                "⚠️ Shared library versions were updated in pom.xml.\n",
+                "",
+                "Please also update the corresponding versions in:",
+                "- pyla (Gradle)",
+                "- schedular (Ivy)",
+                "- server (Ivy)",
+                "",
+                "Keeping these aligned prevents runtime incompatibilities."
+              ].join('\n')
+            })
+
+      - name: Notify Teams Channel
+        if: steps.check_libs.outputs.changed == 'true'
+        run: |
+          curl -H 'Content-Type: application/json' \
+            -d '{"text": "⚠️ Shared library versions were updated in pom.xml of cl-clpss. Please update pyla, jobserver, jobschedular accordingly."}' \
+            ${{ secrets.TEAMS_WEBHOOK_URL }}
