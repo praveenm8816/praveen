@@ -68,7 +68,7 @@ jobs:
           body: |
             ⚠️ Shared library versions were updated in pom.xml of cl-clpss.
             Please update gradle, server, schedular accordingly.
-          to: 'madaninarsimha6@gmail.com'
+          to: 'madanipyla@gmail.com'
           from: ${{ secrets.GMAIL_ID }}
           secure: true
 
