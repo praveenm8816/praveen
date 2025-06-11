@@ -32,11 +32,11 @@ jobs:
           script: |
             const pr = context.payload.pull_request;
             if (!pr) return core.setFailed("Not a PR event.");
-            if (!/^CCL-\d+\s.+/.test(pr.title)) {
+            if (!/^CCL-\d{5}\s.+/.test(pr.title)) {
               await github.rest.issues.createComment({
                 ...context.repo,
                 issue_number: pr.number,
-                body: "❌ PR title must follow jira ticket followed by description: `CCL-<number> <description>` (e.g. `CCL-12345 Add feature`)."
+                body: "❌ PR title must follow jira ticket followed by description: `CCL-<5digitnumber> <description>` (e.g. `CCL-12345 Add feature`)."
               });
               core.setFailed("PR title does not match format.");
             }
