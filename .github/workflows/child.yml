@@ -1,0 +1,8 @@
+name: "Enforce PR Title Pattern via Central Workflow"
+on:
+  pull_request:
+    branches: [ develop, main, release/* ]
+
+jobs:
+  enforce-pr-title:
+    uses: praveenm8816/Kakinada/.github/workflows/pr-title-check.yml@main
