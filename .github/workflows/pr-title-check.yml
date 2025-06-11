@@ -1,4 +1,4 @@
-name: "Enforce PR Title Pattern for Jira Ticket"
+name: "Enforce PR Title Format"
 
 on:
   workflow_call:
@@ -8,58 +8,39 @@ permissions:
   contents: read
 
 jobs:
-  validate-pr-title:
+  pr-title-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check if only CODEOWNERS file changed
-        id: codeowners-only
+      - name: Check if only CODEOWNERS changed
+        id: codeowners
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
-            if (!pr) {
-              core.setFailed("No pull_request context. This step must run on a pull_request event.");
-              return;
-            }
-            const files = await github.paginate(
-              github.rest.pulls.listFiles,
-              {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pr.number,
-                per_page: 100
-              }
-            );
-            const changedFiles = files.map(f => f.filename);
-            if (changedFiles.length === 1 && changedFiles[0] === 'CODEOWNERS') {
-              core.setOutput("only_codeowners", "true");
-            } else {
-              core.setOutput("only_codeowners", "false");
-            }
+            if (!pr) return core.setFailed("Not a PR event.");
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            core.setOutput("only_codeowners", files.length === 1 && files[0].filename === 'CODEOWNERS');
 
-      - name: Validate PR Title Pattern
-        if: steps.codeowners-only.outputs.only_codeowners == 'false'
+      - name: Enforce PR title format
+        if: steps.codeowners.outputs.only_codeowners != 'true'
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
-            if (!pr) {
-              core.setFailed("No pull_request context. This step must run on a pull_request event.");
-              return;
-            }
-            const prTitle = pr.title;
-            const jiraPattern = /^CCL-\d+\s.+/;
-            if (!jiraPattern.test(prTitle)) {
-              const body = "❌ **PR title must match `CCL-<number> <description>` (e.g. `CCL-12345 Add feature`).**\n\nPlease update the title to reference an active Jira ticket.";
+            if (!pr) return core.setFailed("Not a PR event.");
+            if (!/^CCL-\d+\s.+/.test(pr.title)) {
               await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                ...context.repo,
                 issue_number: pr.number,
-                body
+                body: "❌ PR title must follow jira ticket followed by description: `CCL-<number> <description>` (e.g. `CCL-12345 Add feature`)."
               });
-              core.setFailed("PR title does not match required Jira pattern.");
+              core.setFailed("PR title does not match format.");
             }
 
-      - name: Skip check for CODEOWNERS-only PRs
-        if: steps.codeowners-only.outputs.only_codeowners == 'true'
-        run: echo "Skipping PR title check for CODEOWNERS-only PR."
+      - name: Skip for CODEOWNERS-only PRs
+        if: steps.codeowners.outputs.only_codeowners == 'true'
+        run: echo "Skipping title check for CODEOWNERS-only PR."
