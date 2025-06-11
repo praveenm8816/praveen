@@ -1,0 +1,39 @@
+name: "Enforce PR Title Pattern for Jira Ticket"
+
+on:
+  workflow_call:
+
+jobs:
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if only CODEOWNERS file changed
+        id: codeowners-only
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
+          if [[ "$CHANGED_FILES" == "CODEOWNERS" ]]; then
+            echo "only_codeowners=true" >> $GITHUB_OUTPUT
+          else
+            echo "only_codeowners=false" >> $GITHUB_OUTPUT
+
+      - name: Validate PR Title Pattern
+        if: steps.codeowners-only.outputs.only_codeowners == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prTitle = context.payload.pull_request.title;
+            const jiraPattern = /^CCL-\d+\s.+/; // Change CCL to your Jira prefix
+            if (!jiraPattern.test(prTitle)) {
+              const body = "❌ **PR title must match `CCL-<number> <description>` (e.g. `CCL-12345 Add feature`).**\n\nPlease update the title to reference an active Jira ticket.";
+              await github.issues.createComment({
+                ...context.repo,
+                issue_number: context.payload.pull_request.number,
+                body
+              });
+              core.setFailed("PR title does not match required Jira pattern.");
+            }
+
+      - name: Skip check for CODEOWNERS-only PRs
+        if: steps.codeowners-only.outputs.only_codeowners == 'true'
+        run: echo "Skipping PR title check for CODEOWNERS-only PR."
