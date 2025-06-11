@@ -2,11 +2,13 @@ name: "Enforce PR Title Pattern for Jira Ticket"
 
 on:
   workflow_call:
-
+  
 jobs:
   validate-pr-title:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Check if only CODEOWNERS file changed
         id: codeowners-only
         run: |
