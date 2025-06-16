@@ -11,29 +11,35 @@ jobs:
   pr-title-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check if only CODEOWNERS changed
+
+      - name: Check if only CODEOWNERS file was changed
         id: codeowners
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
             if (!pr) return core.setFailed("Not a PR event.");
+
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: pr.number
+              pull_number: pr.number,
             });
-            core.setOutput("only_codeowners", files.length === 1 && files[0].filename === 'CODEOWNERS');
 
-      - name: Check if PR author is a bot (ci-builder/renovate)
+            const onlyCodeowners = files.length === 1 && files[0].filename === 'CODEOWNERS';
+            core.setOutput("only_codeowners", onlyCodeowners);
+
+      - name: Check if PR author is an automation bot (ci-builder/renovate)
         id: autobot
         uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
             if (!pr) return core.setFailed("Not a PR event.");
+
             const botAuthors = ['ci-builder', 'renovate[bot]', 'renovate'];
-            core.setOutput("is_bot", botAuthors.includes(pr.user.login));
+            const isBot = botAuthors.includes(pr.user.login);
+            core.setOutput("is_bot", isBot);
 
       - name: Enforce PR title format
         if: steps.codeowners.outputs.only_codeowners != 'true' && steps.autobot.outputs.is_bot != 'true'
@@ -42,19 +48,21 @@ jobs:
           script: |
             const pr = context.payload.pull_request;
             if (!pr) return core.setFailed("Not a PR event.");
-            if (!/^CCL-\d{5}\s.+/.test(pr.title)) {
+
+            const titleRegex = /^CCL-\d{5}\s.+/;
+            if (!titleRegex.test(pr.title)) {
               await github.rest.issues.createComment({
                 ...context.repo,
                 issue_number: pr.number,
-                body: "PR title must start with `CCL-<5digit> <description>` (e.g. `CCL-12345 Add feature`)."
+                body: "❌ PR title must start with `CCL-<5digit> <description>` (e.g. `CCL-12345 Add feature`)."
               });
-              core.setFailed("PR title does not match required format.");
+              core.setFailed("PR title does not match the required format.");
             }
 
-      - name: Skip for CODEOWNERS-only PRs
+      - name: Skip title check for CODEOWNERS-only PRs
         if: steps.codeowners.outputs.only_codeowners == 'true'
-        run: echo "Skipping title check for CODEOWNERS-only PR."
+        run: echo "✅ Skipping title check: only CODEOWNERS file changed."
 
-      - name: Skip for bot PRs
+      - name: Skip title check for bot PRs
         if: steps.autobot.outputs.is_bot == 'true'
-        run: echo "Skipping title check for PRs opened by ci-builder or renovate."
+        run: echo "✅ Skipping title check: PR opened by bot user (ci-builder or renovate)."
