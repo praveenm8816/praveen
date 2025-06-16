@@ -25,8 +25,18 @@ jobs:
             });
             core.setOutput("only_codeowners", files.length === 1 && files[0].filename === 'CODEOWNERS');
 
+      - name: Check if PR author is a bot (ci-builder/renovate)
+        id: autobot
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) return core.setFailed("Not a PR event.");
+            const botAuthors = ['ci-builder', 'renovate[bot]', 'renovate'];
+            core.setOutput("is_bot", botAuthors.includes(pr.user.login));
+
       - name: Enforce PR title format
-        if: steps.codeowners.outputs.only_codeowners != 'true'
+        if: steps.codeowners.outputs.only_codeowners != 'true' && steps.autobot.outputs.is_bot != 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -36,11 +46,15 @@ jobs:
               await github.rest.issues.createComment({
                 ...context.repo,
                 issue_number: pr.number,
-                body: "PR title must follow jira ticket followed by description: `CCL-<5digitnumber> <description>` (e.g. `CCL-12345 Add feature`)."
+                body: "PR title must start with `CCL-<5digit> <description>` (e.g. `CCL-12345 Add feature`)."
               });
-              core.setFailed("PR title does not match format.");
+              core.setFailed("PR title does not match required format.");
             }
 
       - name: Skip for CODEOWNERS-only PRs
         if: steps.codeowners.outputs.only_codeowners == 'true'
         run: echo "Skipping title check for CODEOWNERS-only PR."
+
+      - name: Skip for bot PRs
+        if: steps.autobot.outputs.is_bot == 'true'
+        run: echo "Skipping title check for PRs opened by ci-builder or renovate."
