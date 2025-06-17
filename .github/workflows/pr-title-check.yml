@@ -13,21 +13,33 @@ jobs:
   PR-Title-Check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check if only CODEOWNERS file was changed
-        id: codeowners
+      - name: Get changed files in PR
+        id: changed-files
         uses: actions/github-script@v3
         with:
           script: |
             const pr = context.payload.pull_request;
             if (!pr) return core.setFailed("Not a PR event.");
-            const files = await github.paginate(github.rest.pulls.listFiles, {
+            const files = await github.pulls.listFiles({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: pr.number
             });
-            const codeownersPaths = ['CODEOWNERS', '.github/CODEOWNERS'];
-            const onlyCodeowners = files.length > 0 && files.every(file => codeownersPaths.includes(file.filename));
-            core.setOutput("only_codeowners", onlyCodeowners);
+            const fileNames = files.data.map(file => file.filename);
+            core.setOutput("file_names", JSON.stringify(fileNames));
+
+      - name: Check if only CODEOWNERS file was changed
+        id: codeowners
+        run: |
+          file_names=$(echo "${{ steps.changed-files.outputs.file_names }}" | jq -r '.[]')
+          only_codeowners="true"
+          for file in $file_names; do
+            if [ "$file" != "CODEOWNERS" ] && [ "$file" != ".github/CODEOWNERS" ]; then
+              only_codeowners="false"
+              break
+            fi
+          done
+          echo "only_codeowners=$only_codeowners" >> $GITHUB_OUTPUT
 
       - name: Check if PR author is a bot (ci-builder/renovate)
         id: autobot
@@ -38,6 +50,14 @@ jobs:
             if (!pr) return core.setFailed("Not a PR event.");
             const botAuthors = ['ci-builder', 'renovate[bot]', 'renovate'];
             core.setOutput("is_bot", botAuthors.includes(pr.user.login));
+
+      - name: Skip check for CODEOWNERS-only PRs
+        if: steps.codeowners.outputs.only_codeowners == 'true'
+        run: echo "Skipping PR Title check as only CODEOWNERS file was changed."
+
+      - name: Skip for bot PRs
+        if: steps.autobot.outputs.is_bot == 'true'
+        run: echo "Skipping title check, PR opened by bot user (ci-builder or renovate)."
 
       - name: Enforce PR Title Format
         if: steps.codeowners.outputs.only_codeowners != 'true' && steps.autobot.outputs.is_bot != 'true'
@@ -50,11 +70,3 @@ jobs:
             if (!pattern.test(pr.title)) {
               core.setFailed("PR title must start with CCL-<5digit> <description> (eg. 'CCL-12345 Add feature').");
             }
-
-      - name: Skip check for CODEOWNERS-only PRs
-        if: steps.codeowners.outputs.only_codeowners == 'true'
-        run: echo "Skipping PR Title check as only CODEOWNERS file was changed."
-
-      - name: Skip for bot PRs
-        if: steps.autobot.outputs.is_bot == 'true'
-        run: echo "Skipping title check, PR opened by bot user (ci-builder or renovate)."
