@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   PR-Title-Check:
-    runs-on: organization-runner
+    runs-on: ubuntu-latest
 
     steps:
       - name: Check PR author and CODEOWNERS file
@@ -56,4 +56,3 @@ jobs:
             const pattern = /^CCL-\d{5}\s.+/;
             if (!pattern.test(pr.title)) {
               core.setFailed("PR title must start with CCL-<5digit> <description> (eg. 'CCL-12345 Add feature').");
-            }
