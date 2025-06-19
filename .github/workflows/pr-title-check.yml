@@ -3,9 +3,7 @@ name: "Enforce PR Title Format"
 on:
   workflow_call:
   pull_request:
-    branches:
-      - 'develop'
-      - 'release/*'
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   PR-Title-Check:
