@@ -1,0 +1,11 @@
+{
+  "pull_request": {
+    "number": 3,
+    "title": "CCL-12345 add description",
+    "user": { "login": "ci-builder" },
+    "base": { "ref": "develop" }
+  },
+  "repository": {
+    "owner": { "login": "your-org" },
+    "name": "your-repo" }
+}

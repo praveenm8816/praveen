@@ -1,0 +1,11 @@
+{
+  "pull_request": {
+    "number": 2,
+    "title": "add description without ticket",
+    "user": { "login": "normal-user" },
+    "base": { "ref": "develop" }
+  },
+  "repository": {
+    "owner": { "login": "your-org" },
+    "name": "your-repo" }
+}

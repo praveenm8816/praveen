@@ -1,0 +1,14 @@
+{
+  "pull_request": {
+    "number": 4,
+    "title": "CCL-12345 update CODEOWNERS",
+    "user": { "login": "normal-user" },
+    "base": { "ref": "develop" }
+  },
+  "repository": {
+    "owner": { "login": "your-org" },
+    "name": "your-repo" },
+  "pull_request_files": [
+    { "filename": "CODEOWNERS" }
+  ]
+}
