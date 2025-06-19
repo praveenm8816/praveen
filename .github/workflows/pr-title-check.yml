@@ -14,9 +14,7 @@ permissions:
 jobs:
   PR-Title-Check:
     runs-on: organization-runner
-    outputs:
-      is_bot: ${{ steps.prmeta.outputs.is_bot }}
-      has_codeowners: ${{ steps.prmeta.outputs.has_codeowners }}
+
     steps:
       - name: Check PR author and CODEOWNERS file
         id: prmeta
