@@ -11,6 +11,11 @@ jobs:
   PR-Title-Check:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
       - name: Check PR metadata
         id: check_pr
         run: |
@@ -24,8 +29,9 @@ jobs:
           echo "is_bot=false" >> $GITHUB_OUTPUT
 
           # Check for CODEOWNERS file changes
-          CHANGED_FILES="${{ join(github.event.pull_request.changed_files, ' ') }}"
-          if [[ "$CHANGED_FILES" =~ (^|[[:space:]])CODEOWNERS($|[[:space:]]) ]] || [[ "$CHANGED_FILES" =~ (^|[[:space:]])\.github/CODEOWNERS($|[[:space:]]) ]]; then
+          git fetch origin
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }})
+          if echo "$CHANGED_FILES" | grep -q "CODEOWNERS\|\.github/CODEOWNERS"; then
             echo "Skipping check: CODEOWNERS file modified"
             echo "has_codeowners=true" >> $GITHUB_OUTPUT
             exit 0
