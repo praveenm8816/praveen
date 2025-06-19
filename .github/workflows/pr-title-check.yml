@@ -2,6 +2,9 @@ name: "Enforce PR Title Format"
 
 on:
   workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
   pull_request:
     branches:
       - 'develop'
@@ -19,6 +22,8 @@ jobs:
       - name: Check PR author and CODEOWNERS file
         id: prmeta
         uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -49,6 +54,8 @@ jobs:
       - name: Enforce PR Title Format
         if: ${{ steps.prmeta.outputs.is_bot != 'true' && steps.prmeta.outputs.has_codeowners != 'true' }}
         uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -56,3 +63,4 @@ jobs:
             const pattern = /^CCL-\d{5}\s.+/;
             if (!pattern.test(pr.title)) {
               core.setFailed("PR title must start with CCL-<5digit> <description> (eg. 'CCL-12345 Add feature').");
+            }
