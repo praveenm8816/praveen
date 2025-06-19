@@ -2,10 +2,6 @@ name: "Enforce PR Title Format"
 
 on:
   workflow_call:
-  pull_request:
-    branches:
-      - 'develop'
-      - 'release/*'
 
 permissions:
   pull-requests: read
@@ -14,25 +10,53 @@ permissions:
 jobs:
   PR-Title-Check:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Check PR author and CODEOWNERS file (no token)
-        id: prmeta
-        run: |
-          echo "::set-output name=is_bot::false"
-          echo "::set-output name=has_codeowners::false"
-        shell: bash
+      - name: Check if only CODEOWNERS file was changed
+        id: codeowners
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) return core.setFailed("Not a PR event.");
+            const files = await github.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            const codeownersPaths = ['CODEOWNERS', '.github/CODEOWNERS'];
+            const fileNames = files.data.map(file => file.filename.trim());
+            console.log('Debug: Changed files:', fileNames);
+            const onlyCodeowners = fileNames.length > 0 && fileNames.every(name => codeownersPaths.includes(name));
+            console.log('Debug: only_codeowners:', onlyCodeowners);
+            core.setOutput("only_codeowners", onlyCodeowners ? 'true' : 'false');
+
+      - name: Check if PR author is a bot (ci-builder/renovate)
+        id: autobot
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) return core.setFailed("Not a PR event.");
+            const botAuthors = ['ci-builder', 'renovate[bot]', 'renovate'];
+            const isBot = botAuthors.includes(pr.user.login);
+            core.setOutput("is_bot", isBot ? 'true' : 'false');
+            console.log('Debug: is_bot:', isBot);
+
+      - name: Skip check for CODEOWNERS-only PRs
+        if: steps.codeowners.outputs.only_codeowners == 'true'
+        run: echo "Skipping PR Title check as only CODEOWNERS file was changed."
 
       - name: Skip for bot PRs
-        if: ${{ steps.prmeta.outputs.is_bot == 'true' }}
-        run: echo "Skipping title check, PR opened by bot user (ci-builder, renovate, or bot)."
-
-      - name: Skip if CODEOWNERS file changed
-        if: ${{ steps.prmeta.outputs.has_codeowners == 'true' }}
-        run: echo "Skipping PR Title check as CODEOWNERS file was changed."
+        if: steps.autobot.outputs.is_bot == 'true'
+        run: echo "Skipping title check, PR opened by bot user (ci-builder or renovate)."
 
       - name: Enforce PR Title Format
-        if: ${{ steps.prmeta.outputs.is_bot != 'true' && steps.prmeta.outputs.has_codeowners != 'true' }}
-        run: |
-          echo "This is where you would enforce the PR title format."
-        shell: bash
+        if: steps.codeowners.outputs.only_codeowners != 'true' && steps.autobot.outputs.is_bot != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) return core.setFailed("Not a PR event.");
+            const pattern = /^CCL-\d{5}\s.+/;
+            if (!pattern.test(pr.title)) {
+              core.setFailed("PR title must start with CCL-<5digit> <description> (eg. 'CCL-12345 Add feature').");
