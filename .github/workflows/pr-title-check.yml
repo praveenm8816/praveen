@@ -2,61 +2,44 @@ name: "Enforce PR Title Format"
 
 on:
   workflow_call:
-
-permissions:
-  pull-requests: read
-  contents: read
+  pull_request:
+    branches:
+      - 'develop'
+      - 'release/*'
 
 jobs:
   PR-Title-Check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check if only CODEOWNERS file was changed
-        id: codeowners
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            if (!pr) return core.setFailed("Not a PR event.");
-            const files = await github.pulls.listFiles({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number
-            });
-            const codeownersPaths = ['CODEOWNERS', '.github/CODEOWNERS'];
-            const fileNames = files.data.map(file => file.filename.trim());
-            console.log('Debug: Changed files:', fileNames);
-            const onlyCodeowners = fileNames.length > 0 && fileNames.every(name => codeownersPaths.includes(name));
-            console.log('Debug: only_codeowners:', onlyCodeowners);
-            core.setOutput("only_codeowners", onlyCodeowners ? 'true' : 'false');
+      - name: Check PR metadata
+        id: check_pr
+        run: |
+          # Check if PR author is a bot
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          if [[ "$PR_AUTHOR" =~ ^(ci-builder|renovate(\[bot\])?|bot)$ ]]; then
+            echo "Skipping check: PR created by bot user ($PR_AUTHOR)"
+            echo "is_bot=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "is_bot=false" >> $GITHUB_OUTPUT
 
-      - name: Check if PR author is a bot (ci-builder/renovate)
-        id: autobot
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            if (!pr) return core.setFailed("Not a PR event.");
-            const botAuthors = ['ci-builder', 'renovate[bot]', 'renovate'];
-            const isBot = botAuthors.includes(pr.user.login);
-            core.setOutput("is_bot", isBot ? 'true' : 'false');
-            console.log('Debug: is_bot:', isBot);
+          # Check for CODEOWNERS file changes
+          CHANGED_FILES="${{ join(github.event.pull_request.changed_files, ' ') }}"
+          if [[ "$CHANGED_FILES" =~ (^|[[:space:]])CODEOWNERS($|[[:space:]]) ]] || [[ "$CHANGED_FILES" =~ (^|[[:space:]])\.github/CODEOWNERS($|[[:space:]]) ]]; then
+            echo "Skipping check: CODEOWNERS file modified"
+            echo "has_codeowners=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "has_codeowners=false" >> $GITHUB_OUTPUT
 
-      - name: Skip check for CODEOWNERS-only PRs
-        if: steps.codeowners.outputs.only_codeowners == 'true'
-        run: echo "Skipping PR Title check as only CODEOWNERS file was changed."
-
-      - name: Skip for bot PRs
-        if: steps.autobot.outputs.is_bot == 'true'
-        run: echo "Skipping title check, PR opened by bot user (ci-builder or renovate)."
-
-      - name: Enforce PR Title Format
-        if: steps.codeowners.outputs.only_codeowners != 'true' && steps.autobot.outputs.is_bot != 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            if (!pr) return core.setFailed("Not a PR event.");
-            const pattern = /^CCL-\d{5}\s.+/;
-            if (!pattern.test(pr.title)) {
-              core.setFailed("PR title must start with CCL-<5digit> <description> (eg. 'CCL-12345 Add feature').");
+      - name: Check PR title format
+        if: steps.check_pr.outputs.is_bot != 'true' && steps.check_pr.outputs.has_codeowners != 'true'
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          if [[ ! "$PR_TITLE" =~ ^CCL-[0-9]{5}[[:space:]].+ ]]; then
+            echo "Error: PR title must start with CCL-<5digit> followed by a description"
+            echo "Example: CCL-12345 Add feature"
+            echo "Your title: $PR_TITLE"
+            exit 1
+          fi
+          echo "PR title format is valid: $PR_TITLE"
