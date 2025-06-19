@@ -41,7 +41,7 @@ jobs:
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
           if [[ ! "$PR_TITLE" =~ ^CCL-[0-9]{5}[[:space:]].+ ]]; then
-            echo "Error: PR title must start with CCL-<5digit> followed by a description"
+            echo "Error: PR title must start with CCL-<5digit> followed by a description e.g., CCL-3099 Add feature"
             echo "Example: CCL-12345 Add feature"
             echo "Your title: $PR_TITLE"
             exit 1
