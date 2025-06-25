@@ -22,17 +22,10 @@ jobs:
         id: check_pr
         shell: bash
         run: |
-          # Get PR author from GitHub context
+          # Check if PR author is a bot
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          # Get committer of the latest commit in the PR branch
-          PR_COMMITTER="$(git log -1 --pretty=format:'%an')"
-
-          echo "PR_AUTHOR: $PR_AUTHOR"
-          echo "PR_COMMITTER: $PR_COMMITTER"
-
-          # Set is_bot output (do not exit early, always set output)
-          if [[ "$PR_AUTHOR" == "cibuilder" || "$PR_COMMITTER" == "cibuilder" || "$PR_AUTHOR" == "Renovate Bot" || "$PR_COMMITTER" == "Renovate Bot" ]]; then
-            echo "Skipping PR title check for cibuilder or Renovate Bot"
+          if [[ "$PR_AUTHOR" =~ ^(ci-builder|renovate(\[bot\])?|bot)$ ]]; then
+            echo "Skipping check: PR created by bot user ($PR_AUTHOR)"
             echo "is_bot=true" >> $GITHUB_OUTPUT
           else
             echo "is_bot=false" >> $GITHUB_OUTPUT
