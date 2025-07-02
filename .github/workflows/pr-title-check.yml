@@ -46,12 +46,24 @@ jobs:
         shell: bash
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
-          if [[ ! "$PR_TITLE" =~ ^(CCL|OCS|CEDT)-[0-9]+[[:space:]].+ ]]; then
+          if [[ ! "$PR_TITLE" =~ ^(GG|OCS|SUPP)-[0-9]+[[:space:]].+ ]]; then
             echo "Error: PR title must start with one of the following prefixes, a dash, at least one digit, a space, and a description:"
-            echo "  - CCL-<digits> (e.g., CCL-12345 Add feature)"
+            echo "  - GG-<digits> (e.g., GG-12345 Add feature)"
             echo "  - OCS-<digits> (e.g., OCS-123 Fix bug)"
-            echo "  - CEDT-<digits> (e.g., CEDT-1234 Update docs)"
+            echo "  - SUPP-<digits> (e.g., SUPP-1234 Update docs)"
             echo "Your title: $PR_TITLE"
             exit 1
           fi
           echo "PR title format is valid: $PR_TITLE"
+
+          # --- Jira ticket validation ---
+          TICKET_ID=$(echo "$PR_TITLE" | grep -oE '^(GG|OCS|SUPP)-[0-9]+')
+          JIRA_API_URL="https://praveen9.atlassian.net/rest/api/2/issue/$TICKET_ID"
+          JIRA_USER="madanipraveen9@gmail.com"
+          JIRA_TOKEN="${{ secrets.JIRA_TOKEN }}"
+          RESPONSE=$(curl -s -u "$JIRA_USER:$JIRA_TOKEN" -H "Accept: application/json" "$JIRA_API_URL")
+          if echo "$RESPONSE" | grep -q 'issue does not exist'; then
+            echo "Error: Jira ticket $TICKET_ID does not exist."
+            exit 1
+          fi
+          echo "Jira ticket $TICKET_ID is valid."
