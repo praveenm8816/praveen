@@ -61,9 +61,11 @@ jobs:
           JIRA_API_URL="https://praveen9.atlassian.net/rest/api/2/issue/$TICKET_ID"
           JIRA_USER="madanipraveen9@gmail.com"
           JIRA_TOKEN="${{ secrets.JIRA_TOKEN }}"
-          RESPONSE=$(curl -s -u "$JIRA_USER:$JIRA_TOKEN" -H "Accept: application/json" "$JIRA_API_URL")
-          if echo "$RESPONSE" | grep -q 'issue does not exist'; then
-            echo "Error: Jira ticket $TICKET_ID does not exist."
+          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" -u "$JIRA_USER:$JIRA_TOKEN" -H "Accept: application/json" "$JIRA_API_URL")
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Error: Jira ticket $TICKET_ID does not exist or is inaccessible (HTTP $HTTP_STATUS)."
+            cat response.json
             exit 1
           fi
           echo "Jira ticket $TICKET_ID is valid."
+          # --- End Jira ticket validation ---
