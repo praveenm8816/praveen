@@ -47,10 +47,10 @@ jobs:
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
           if [[ ! "$PR_TITLE" =~ ^(GG|OCS|SUPP)-[0-9]+[[:space:]].+ ]]; then
-            echo "Error: PR title must start with one of the following prefixes, a dash, at least one digit, a space, and a description:"
-            echo "  - GG-<digits> (e.g., GG-12345 Add feature)"
-            echo "  - OCS-<digits> (e.g., OCS-123 Fix bug)"
-            echo "  - SUPP-<digits> (e.g., SUPP-1234 Update docs)"
+            echo "Error: PR title must follow one of the following formats:"
+            echo "GG-<digits> (e.g., GG-12345 Add feature)"
+            echo "OCS-<digits> (e.g., OCS-123 Fix bug)"
+            echo "SUPP-<digits> (e.g., SUPP-1234 Update docs)"
             echo "Your title: $PR_TITLE"
             exit 1
           fi
