@@ -46,9 +46,11 @@ jobs:
         shell: bash
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
-          if [[ ! "$PR_TITLE" =~ ^CCL-[0-9]{5}[[:space:]].+ ]]; then
-            echo "Error: PR title must start with CCL-<5digit> followed by a description e.g., CCL-12345 Add feature"
-            echo "Example: CCL-12345 Add feature"
+          if [[ ! "$PR_TITLE" =~ ^(CCL|OCS|CEDT)-[0-9]+[[:space:]].+ ]]; then
+            echo "Error: PR title must start with one of the following prefixes, a dash, at least one digit, a space, and a description:"
+            echo "  - CCL-<digits> (e.g., CCL-12345 Add feature)"
+            echo "  - OCS-<digits> (e.g., OCS-123 Fix bug)"
+            echo "  - CEDT-<digits> (e.g., CEDT-1234 Update docs)"
             echo "Your title: $PR_TITLE"
             exit 1
           fi
