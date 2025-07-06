@@ -1,5 +1,9 @@
 name: Shared Library Version Alignment
 
+# This workflow checks for shared library version changes in pom.xml on PRs.
+# If changes are detected, it notifies via PR comment and email, reminding maintainers
+# to align versions across gradle, server, and schedular to prevent incompatibilities.
+
 on:
   pull_request:
     paths:
@@ -45,14 +49,15 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: [
-                "⚠️ Shared library versions were updated in pom.xml.\n",
+                "⚠️ Shared library versions in `pom.xml` have changed.",
                 "",
-                "Please also update the corresponding versions in:",
+                "Please ensure you also update the corresponding versions in:",
                 "- gradle (Gradle)",
                 "- schedular (Ivy)",
                 "- server (Ivy)",
                 "",
-                "Keeping these aligned prevents runtime incompatibilities."
+                "Keeping these aligned prevents runtime incompatibilities.",
+                "Thank you for keeping our dependencies in sync! 🙏"
               ].join('\n')
             })
       
@@ -67,7 +72,11 @@ jobs:
           subject: 'Shared library version updated in pom.xml'
           body: |
             ⚠️ Shared library versions were updated in pom.xml of cl-clpss.
-            Please update gradle, server, schedular accordingly.
+            Please also update gradle, server, schedular accordingly.
+            
+            Keeping these aligned prevents runtime incompatibilities.
+            
+            Thank you for keeping our dependencies in sync! 🙏
           to: 'madanipyla@gmail.com'
           from: ${{ secrets.GMAIL_ID }}
           secure: true
