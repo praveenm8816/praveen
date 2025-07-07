@@ -1,0 +1,15 @@
+name: Shared Lib Version Check (Caller)
+
+description: >
+  Caller workflow to trigger the centralized shared library version check on PR events.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  call-shared-libs:
+    uses: your-org/central-repo/.github/workflows/shared-libs.yml@main
+    with:
+      base_repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
