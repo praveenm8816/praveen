@@ -1,8 +1,8 @@
-name: Shared Library Version Alignment
+name: Shared Library Version Change Alert
 
 # This workflow checks for shared library version changes in pom.xml on PRs.
 # If changes are detected, it notifies via PR comment and email, reminding maintainers
-# to align versions across gradle, server, and schedular to prevent incompatibilities.
+# to align versions across cl-ccl1, cl-jobserver, and cl-jobschedular to prevent incompatibilities.
 
 on:
   pull_request:
@@ -11,7 +11,8 @@ on:
 
 permissions:
   pull-requests: write
-  issues: write
+  contents: read
+
 jobs:
   check-shared-lib-versions:
     runs-on: ubuntu-latest
@@ -26,64 +27,117 @@ jobs:
           python-version: '3.11'
       
       - name: Fetch base branch
-        run: git fetch origin $GITHUB_BASE_REF
-
-      - name: Check for shared library version updates
-        id: check_libs
         run: |
-          python .github/scripts/check_shared_lib_versions.py > result.log
+          git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
+
+      - name: Check for shared library version changes
+        id: check_changes
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PR_NUMBER: ${{ github.event.number }}
+        run: |
+          python .github/scripts/check_version_changes.py > result.log 2>&1
           cat result.log
           if grep -q 'LIB_VERSION_CHANGED' result.log; then
             echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in shared libraries"
           else
             echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected in shared libraries"
           fi
 
       - name: Notify via PR comment
-        if: steps.check_libs.outputs.changed == 'true'
+        if: steps.check_changes.outputs.changed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
+            const result = fs.readFileSync('result.log', 'utf8');
+            
+            // Extract the PR comment from the script output
+            const prCommentMatch = result.match(/--- PR Comment ---\n([\s\S]*?)\n--- Email Body ---/);
+            const prComment = prCommentMatch ? prCommentMatch[1].trim() : 
+              `⚠️ Shared library versions in \`pom.xml\` have changed.\n\nPlease ensure you also update the corresponding versions in:\n- cl-ccl1 (pom.xml)\n- cl-jobserver (ivy.xml)\n- cl-jobschedular (ivy.xml)\n\nKeeping these aligned prevents runtime incompatibilities.\nThank you for keeping our dependencies in sync! 🙏`;
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: [
-                "⚠️ Shared library versions in `pom.xml` have changed.",
-                "",
-                "Please ensure you also update the corresponding versions in:",
-                "- cl-ccl1 (Pom.xml)",
-                "- schedular (Ivy)",
-                "- server (Ivy)",
-                "",
-                "Keeping these aligned prevents runtime incompatibilities.",
-                "Thank you for keeping our dependencies in sync! 🙏"
-              ].join('\n')
-            })
+              body: prComment
+            });
       
-      - name: Send Gmail Notification
-        if: steps.check_libs.outputs.changed == 'true'
+      - name: Send Email Notification
+        if: steps.check_changes.outputs.changed == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.GMAIL_ID }}
           password: ${{ secrets.GMAIL_PASSWORD }}
-          subject: 'Shared library version updated in pom.xml'
+          subject: '🚨 Shared Library Version Updated - cl-clpss Repository'
           body: |
-            ⚠️ Shared library versions were updated in pom.xml of cl-clpss.
-            Please also update gradle, server, schedular accordingly.
-            
+            Hello Team,
+
+            Shared library versions have been updated in the cl-clpss repository.
+
+            PR Author: ${{ github.actor }}
+            PR URL: ${{ github.event.pull_request.html_url }}
+
+            Please update the corresponding versions in:
+            - cl-ccl1 (pom.xml)
+            - cl-jobserver (ivy.xml)
+            - cl-jobschedular (ivy.xml)
+
             Keeping these aligned prevents runtime incompatibilities.
-            
-            Thank you for keeping our dependencies in sync! 🙏
+
+            Best regards,
+            Automated CI/CD System
+
+            ---
+            This is an automated notification. Please do not reply to this email.
           to: 'madanipyla@gmail.com'
           from: ${{ secrets.GMAIL_ID }}
           secure: true
 
-      # - name: Notify Teams Channel
-      #   if: steps.check_libs.outputs.changed == 'true'
-      #   run: |
-      #     curl -H 'Content-Type: application/json' \
-      #       -d '{"text": "⚠️ Shared library versions were updated in pom.xml of cl-clpss. Please update gradle, jobserver, jobschedular accordingly."}' \
-      #       ${{ secrets.TEAMS_WEBHOOK_URL }}
+      - name: Send Teams Notification
+        if: steps.check_changes.outputs.changed == 'true'
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          if [ -n "$TEAMS_WEBHOOK_URL" ]; then
+            curl -H 'Content-Type: application/json' \
+              -d "{
+                \"@type\": \"MessageCard\",
+                \"@context\": \"https://schema.org/extensions\",
+                \"summary\": \"Shared Library Version Update\",
+                \"themeColor\": \"FF6600\",
+                \"title\": \"🚨 Shared Library Version Changed\",
+                \"sections\": [{
+                  \"activityTitle\": \"cl-clpss Repository\",
+                  \"activitySubtitle\": \"PR by ${{ github.actor }}\",
+                  \"facts\": [{
+                    \"name\": \"Repository\",
+                    \"value\": \"cl-clpss\"
+                  }, {
+                    \"name\": \"PR Author\",
+                    \"value\": \"${{ github.actor }}\"
+                  }, {
+                    \"name\": \"Action Required\",
+                    \"value\": \"Update versions in cl-ccl1, cl-jobserver, cl-jobschedular\"
+                  }]
+                }],
+                \"potentialAction\": [{
+                  \"@type\": \"OpenUri\",
+                  \"name\": \"View PR\",
+                  \"targets\": [{
+                    \"os\": \"default\",
+                    \"uri\": \"${{ github.event.pull_request.html_url }}\"
+                  }]
+                }]
+              }" \
+              "$TEAMS_WEBHOOK_URL"
+          else
+            echo "Teams webhook URL not configured, skipping Teams notification"
+          fi

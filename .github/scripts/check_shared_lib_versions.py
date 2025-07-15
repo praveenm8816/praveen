@@ -5,13 +5,13 @@ import subprocess
 from pathlib import Path
 
 SHARED_LIBRARIES = [
-    "Cl_Util",
-    "Clpss_Common",
-    "Clpss_Occupancy",
-    "FireRating",
-    "CSM",
-    "Clpss_RateCLpolicy",
-    "Clpss_ComposePrint"
+    "Util",           # CL_Util
+    "common",         # Clpss_Common
+    "occupancy",      # Clpss_Occupancy
+    "fire-rating",    # FireRating
+    "csm",            # CSM
+    "rating",         # Clpss_RateCLPolicy
+    "compose-print"   # Clpss_ComposePrint
 ]
 
 # Helper to parse Maven pom.xml
@@ -46,12 +46,12 @@ def get_ivy_lib_versions(ivy_path):
     return versions
 
 def main():
-    # Example paths (adjust as needed)
+    # Repository configurations
     repos = {
         'cl-clpss': {'type': 'maven', 'file': 'cl-clpss/pom.xml'},
         'cl-ccl1': {'type': 'maven', 'file': 'cl-ccl1/pom.xml'},
-        'jobserver': {'type': 'ivy', 'file': 'jobserver/ivy.xml'},
-        'jobschedular': {'type': 'ivy', 'file': 'jobschedular/ivy.xml'},
+        'cl-jobserver': {'type': 'ivy', 'file': 'cl-jobserver/ivy.xml'},
+        'cl-jobschedular': {'type': 'ivy', 'file': 'cl-jobschedular/ivy.xml'},
     }
     all_versions = {}
     for repo, info in repos.items():
